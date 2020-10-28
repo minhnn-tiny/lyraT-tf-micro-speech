@@ -2,7 +2,7 @@
 #include "esp_system.h"
 #include "string.h"
 #include "userconfig.h"
-#include "esp_heap_alloc_caps.h"
+#include "esp_heap_caps.h"
 
 //#include "esp_log.h"
 
@@ -52,4 +52,3 @@ void *EspAudioAllocInner(int n, int size)
 
     return data;
 }
-
