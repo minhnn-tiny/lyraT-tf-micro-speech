@@ -21,7 +21,9 @@ limitations under the License.
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "MediaHal.h"
 #include "../main_functions.h"
+#include "../lyraT_audio_provider.h"
 
 int tf_main(int argc, char* argv[]) {
   setup();
@@ -31,6 +33,7 @@ int tf_main(int argc, char* argv[]) {
 }
 
 extern "C" void app_main() {
+  recsrcTask();
   xTaskCreate((TaskFunction_t)&tf_main, "tensorflow", 32 * 1024, NULL, 8, NULL);
   vTaskDelete(NULL);
 }
