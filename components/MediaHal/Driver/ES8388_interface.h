@@ -3,6 +3,11 @@
 #include "esp_types.h"
 #include "driver/i2c.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
+
+
 /* ES8388 address */
 #define ES8388_ADDR 0x20  // 0x22:CE=1;0x20:CE=0
 
@@ -250,6 +255,10 @@ int Es8388ConfigDacOutput(DacOutput output);
 
 int EsWriteReg(uint8_t regAdd, uint8_t data);
 void Es8388ReadAll();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif  // __cplusplus
 
 
 #endif //__ES8388_INTERFACE_H__

@@ -1,6 +1,12 @@
 #ifndef _MEDIA_HAL_H_
 #define _MEDIA_HAL_H_
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
+
+
 typedef enum CodecMode {
     CODEC_MODE_UNKNOWN,
     CODEC_MODE_ENCODE ,
@@ -166,5 +172,9 @@ int MediaHalGetSrcBits(void);
  * @return     int, 0-- success, -1 --fail
  */
 int MediaHalPaPwr(int en);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif  // __cplusplus
 
 #endif  //__MEDIA_HAL_H__

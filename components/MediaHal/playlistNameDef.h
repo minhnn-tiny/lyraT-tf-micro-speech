@@ -3,6 +3,12 @@
 
 #define PLAYLIST_NUM_OPENED_LISTS_MAX    4 //how many playlists can be opened simultaneously
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
+
+
 typedef enum PlayListId {
 
     /*!< playlists in flash */
@@ -27,5 +33,9 @@ int getDefaultSdIndex();
 int getDefaultFlashIndex();
 int getMaxIndex();
 
-#endif /* __PLAYLISTNAMEDEF_H__ */
+#ifdef __cplusplus
+}  // extern "C"
+#endif  // __cplusplus
 
+
+#endif /* __PLAYLISTNAMEDEF_H__ */
