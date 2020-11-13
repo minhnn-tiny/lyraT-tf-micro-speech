@@ -24,14 +24,34 @@ limitations under the License.
 #include "freertos/FreeRTOS.h"
 // clang-format on
 
+#include "MediaHal.h"
+#include "ES8388_interface.h"
+
 #include "driver/i2s.h"
 #include "esp_log.h"
 #include "esp_spi_flash.h"
 #include "esp_system.h"
 #include "esp_timer.h"
+
 #include "freertos/task.h"
 #include "ringbuf.h"
+#include "userconfig.h"
 #include "../micro_features/micro_model_settings.h"
+#include "../main_functions.h"
+
+
+static const char *CHECK_TAG = "lyraT";
+
+#define CHECK(a, b)                                                       \
+    do                                                                    \
+    {                                                                     \
+        if (a)                                                            \
+        {                                                                 \
+            ESP_LOGE(CHECK_TAG, "%s:%d: %s fail\n", __FUNCTION__, __LINE__, b); \
+            abort();                                                      \
+        }                                                                 \
+    } while (0)
+
 
 using namespace std;
 
@@ -56,44 +76,51 @@ bool g_is_audio_initialized = false;
 int16_t g_history_buffer[history_samples_to_keep];
 }  // namespace
 
-const int32_t kAudioCaptureBufferSize = 80000;
-const int32_t i2s_bytes_to_read = 3200;
+const int32_t kAudioCaptureBufferSize = 9600  ;
+const int32_t i2s_bytes_to_read = 4800;
 
 static void i2s_init(void) {
-  // Start listening for audio: MONO @ 16KHz
-  i2s_config_t i2s_config = {
-      .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_TX),
-      .sample_rate = 16000,
-      .bits_per_sample = (i2s_bits_per_sample_t)16,
-      .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-      .communication_format = I2S_COMM_FORMAT_I2S,
-      .intr_alloc_flags = 0,
-      .dma_buf_count = 3,
-      .dma_buf_len = 300,
-      .use_apll = false,
-      .tx_desc_auto_clear = false,
-      .fixed_mclk = -1,
-  };
-  i2s_pin_config_t pin_config = {
-      .bck_io_num = 26,    // IIS_SCLK
-      .ws_io_num = 32,     // IIS_LCLK
-      .data_out_num = -1,  // IIS_DSIN
-      .data_in_num = 33,   // IIS_DOUT
-  };
-  esp_err_t ret = 0;
-  ret = i2s_driver_install((i2s_port_t)1, &i2s_config, 0, NULL);
-  if (ret != ESP_OK) {
-    ESP_LOGE(TAG, "Error in i2s_driver_install");
-  }
-  ret = i2s_set_pin((i2s_port_t)1, &pin_config);
-  if (ret != ESP_OK) {
-    ESP_LOGE(TAG, "Error in i2s_set_pin");
-  }
+  CHECK(MediaHalInit(), "Media hal init");
+  CHECK(MediaHalStart(CODEC_MODE_ENCODE), "Media HAL start");
+  int i2s = MediaHalGetI2sNum();
+  // i2s_enum = 0;
+  printf("I2S num %d\n", i2s);
+  Es8388SetMicGain(MIC_GAIN_21DB);
 
-  ret = i2s_zero_dma_buffer((i2s_port_t)1);
-  if (ret != ESP_OK) {
-    ESP_LOGE(TAG, "Error in initializing dma buffer with 0");
-  }
+  // Start listening for audio: MONO @ 16KHz
+  // i2s_config_t i2s_config = {
+  //     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_TX),
+  //     .sample_rate = 16000,
+  //     .bits_per_sample = (i2s_bits_per_sample_t)16,
+  //     .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
+  //     .communication_format = I2S_COMM_FORMAT_I2S,
+  //     .intr_alloc_flags = 0,
+  //     .dma_buf_count = 3,
+  //     .dma_buf_len = 300,
+  //     .use_apll = false,
+  //     .tx_desc_auto_clear = false,
+  //     .fixed_mclk = -1,
+  // };
+  // i2s_pin_config_t pin_config = {
+  //     .bck_io_num = 26,    // IIS_SCLK
+  //     .ws_io_num = 32,     // IIS_LCLK
+  //     .data_out_num = -1,  // IIS_DSIN
+  //     .data_in_num = 33,   // IIS_DOUT
+  // };
+  // esp_err_t ret = 0;
+  // ret = i2s_driver_install((i2s_port_t)1, &i2s_config, 0, NULL);
+  // if (ret != ESP_OK) {
+  //   ESP_LOGE(TAG, "Error in i2s_driver_install");
+  // }
+  // ret = i2s_set_pin((i2s_port_t)1, &pin_config);
+  // if (ret != ESP_OK) {
+  //   ESP_LOGE(TAG, "Error in i2s_set_pin");
+  // }
+
+  // ret = i2s_zero_dma_buffer((i2s_port_t)1);
+  // if (ret != ESP_OK) {
+  //   ESP_LOGE(TAG, "Error in initializing dma buffer with 0");
+  // }
 }
 
 static void CaptureSamples(void *arg) {
@@ -102,8 +129,9 @@ static void CaptureSamples(void *arg) {
   i2s_init();
   while (1) {
     /* read 100ms data at once from i2s */
-    i2s_read((i2s_port_t)1, (void *)i2s_read_buffer, i2s_bytes_to_read,
-             &bytes_read, 10);
+    i2s_read((i2s_port_t)0, (void *)i2s_read_buffer, i2s_bytes_to_read,
+             &bytes_read, portMAX_DELAY);
+    // print_int16(1, 480, (int16_t *)i2s_read_buffer);
     if (bytes_read <= 0) {
       ESP_LOGE(TAG, "Error in I2S read : %d", bytes_read);
     } else {
@@ -112,7 +140,8 @@ static void CaptureSamples(void *arg) {
       }
       /* write bytes read by i2s into ring buffer */
       int bytes_written = rb_write(g_audio_capture_buffer,
-                                   (uint8_t *)i2s_read_buffer, bytes_read, 10);
+                                   (uint8_t *)i2s_read_buffer, bytes_read, portMAX_DELAY);
+      // print_int16(1, (int)bytes_read, (int16_t *)i2s_read_buffer);
       /* update the timestamp (in ms) to let the model know that new data has
        * arrived */
       g_latest_audio_timestamp +=
@@ -135,7 +164,7 @@ TfLiteStatus InitAudioRecording(tflite::ErrorReporter *error_reporter) {
   }
   /* create CaptureSamples Task which will get the i2s_data from mic and fill it
    * in the ring buffer */
-  xTaskCreate(CaptureSamples, "CaptureSamples", 1024 * 32, NULL, 10, NULL);
+  xTaskCreatePinnedToCore(CaptureSamples, "CaptureSamples", 1024 * 32, NULL, 10, NULL, 0);
   while (!g_latest_audio_timestamp) {
   }
   ESP_LOGI(TAG, "Audio Recording started");
@@ -179,6 +208,8 @@ TfLiteStatus GetAudioSamples(tflite::ErrorReporter *error_reporter,
 
   *audio_samples_size = kMaxAudioSampleSize;
   *audio_samples = g_audio_output_buffer;
+  // printf("audio sample size: %d\n", *audio_samples_size);
+  // print_int16(1, *audio_samples_size, *audio_samples);
   return kTfLiteOk;
 }
 

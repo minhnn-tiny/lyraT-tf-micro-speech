@@ -13,11 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <stdio.h>
 #include "feature_provider.h"
 
 #include "audio_provider.h"
 #include "micro_features/micro_features_generator.h"
 #include "micro_features/micro_model_settings.h"
+
+#include "main_functions.h"
 
 FeatureProvider::FeatureProvider(int feature_size, int8_t* feature_data)
     : feature_size_(feature_size),
@@ -100,6 +103,8 @@ TfLiteStatus FeatureProvider::PopulateFeatureData(
       GetAudioSamples(error_reporter, (slice_start_ms > 0 ? slice_start_ms : 0),
                       kFeatureSliceDurationMs, &audio_samples_size,
                       &audio_samples);
+      // printf("audio sample size: %d\n", audio_samples_size);
+      // print_int16(1, audio_samples_size, (int16_t *)audio_samples);
       if (audio_samples_size < kMaxAudioSampleSize) {
         TF_LITE_REPORT_ERROR(error_reporter,
                              "Audio data size %d too small, want %d",

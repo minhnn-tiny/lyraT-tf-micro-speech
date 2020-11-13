@@ -22,6 +22,8 @@ limitations under the License.
 #include "micro_features/micro_model_settings.h"
 #include "micro_features/model.h"
 #include "recognize_commands.h"
+#include "esp_timer.h"
+
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
@@ -157,6 +159,8 @@ void loop() {
   // Fetch the spectrogram for the current time.
   const int32_t current_time = LatestAudioTimestamp();
   int how_many_new_slices = 0;
+
+  int64_t start_time = esp_timer_get_time();
   TfLiteStatus feature_status = feature_provider->PopulateFeatureData(
       error_reporter, previous_time, current_time, &how_many_new_slices);
   if (feature_status != kTfLiteOk) {
@@ -195,10 +199,12 @@ void loop() {
                          "RecognizeCommands::ProcessLatestResults() failed");
     return;
   }
-  print_int16(1, kFeatureElementCount, (int16_t *)feature_buffer);
+  // print_int16(1, kFeatureElementCount, (int16_t *)feature_buffer);
   // Do something based on the recognized command. The default implementation
   // just prints to the error console, but you should replace this with your
   // own function for a real application.
   RespondToCommand(error_reporter, current_time, found_command, score,
                    is_new_command);
+  // int64_t end_time = esp_timer_get_time() - start_time;
+  // printf("Runtime %lld\n", end_time);
 }

@@ -24,6 +24,7 @@ limitations under the License.
 #include "MediaHal.h"
 #include "../main_functions.h"
 #include "../lyraT_audio_provider.h"
+#include "../micro_speech_test.h"
 
 int tf_main(int argc, char* argv[]) {
   setup();
@@ -33,7 +34,9 @@ int tf_main(int argc, char* argv[]) {
 }
 
 extern "C" void app_main() {
-  recsrcTask();
-  xTaskCreate((TaskFunction_t)&tf_main, "tensorflow", 32 * 1024, NULL, 8, NULL);
+  // recsrcTask();
+  xTaskCreatePinnedToCore((TaskFunction_t)&tf_main, "tensorflow", 32 * 1024, NULL, 8, NULL, 1);
   vTaskDelete(NULL);
+  // xTaskCreate((TaskFunction_t)&main, "tensorflow", 128 * 1024, NULL, 10, NULL);
+  // vTaskDelete(NULL);
 }
